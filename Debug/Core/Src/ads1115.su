@@ -1,2 +1,3 @@
-ads1115.c:12:6:Read_I2C	24	static
-ads1115.c:24:7:Read_ads1115	4	static
+ads1115.c:17:6:Read_I2C	24	static
+ads1115.c:29:6:Read_ads1115	32	static
+ads1115.c:70:5:Convert2Modbus	24	static

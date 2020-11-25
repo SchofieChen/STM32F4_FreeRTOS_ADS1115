@@ -2,12 +2,17 @@
  * ads1115.c
  *
  *  Created on: Sep 24, 2020
- *      Author: user
+ *      Author: SchofieChen
  */
 #include "main.h"
 #include "Delay.h"
-
+#include "ads1115.h"
 extern I2C_HandleTypeDef hi2c1;
+extern unsigned char ADSwrite[6];
+extern uint8_t ADS1115_ADDRESS;
+extern int16_t reading;
+extern const float voltageConv;
+
 
 void Read_I2C(void)
 {
@@ -21,7 +26,52 @@ void Read_I2C(void)
 	delay_ms(1);
 }
 
-float Read_ads1115(void)
+void Read_ads1115(ADS1115_BOARD * ADS1115_BOARD_SELECT,uint8_t ADDRESS)
 {
+	for( int i = 0; i < 2; i++) {
+		ADSwrite[0] = 0x01;
+		switch(i)
+		{
+			case(0):
+				ADSwrite[1] = 0x81; // 10000001 CH0+ CH1
+			break;
+			case(1):
+				ADSwrite[1] = 0xB1;// 10110001 CH2+ CH3
+			break;
+		}
+		ADSwrite[2] = 0x83; // 10000011
+		HAL_I2C_Master_Transmit(&hi2c1, ADDRESS<<1, ADSwrite, 3, 100);
+		ADSwrite[0] = 0x00;
+		HAL_I2C_Master_Transmit(&hi2c1, ADDRESS<<1, ADSwrite, 1, 100);
+		HAL_Delay(20);
+		HAL_I2C_Master_Receive(&hi2c1, ADDRESS<<1, ADSwrite, 2, 100);
+		reading = (ADSwrite[0] << 8 | ADSwrite[1]);
+		if(reading >= 0x8000 && reading <= 0xffff)
+		{
+			reading = 0xffff - reading;   //差�?�为负�?��?�对?��?�使得A0 A1�???�接?���?
+		}
+		 else if(reading >= 0xffff)
+		 {
+			 reading = 0;
+		 }
 
+		if(i == 0)
+		{
+			ADS1115_BOARD_SELECT->ADS1115_CH1.data = reading * voltageConv;
+		}
+		else if(i == 1)
+		{
+			ADS1115_BOARD_SELECT->ADS1115_CH2.data = reading * voltageConv;
+		}
+	}
+
+}
+
+int Convert2Modbus(float Data)
+{
+	int ConvertData = 0;
+
+	ConvertData = ((Data+5)*65535)/10;
+
+	return ConvertData;
 }

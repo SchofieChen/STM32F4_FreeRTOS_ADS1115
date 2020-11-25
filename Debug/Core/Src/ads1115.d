@@ -29,7 +29,7 @@ Core/Src/ads1115.o: ../Core/Src/ads1115.c ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../Core/Src/Delay.h
+ ../Core/Src/Delay.h ../Core/Inc/ads1115.h
 
 ../Core/Inc/main.h:
 
@@ -94,3 +94,5 @@ Core/Src/ads1115.o: ../Core/Src/ads1115.c ../Core/Inc/main.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 
 ../Core/Src/Delay.h:
+
+../Core/Inc/ads1115.h:

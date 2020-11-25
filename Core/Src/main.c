@@ -35,8 +35,9 @@
 /* USER CODE BEGIN PTD */
 
 uint8_t rxbuffer[8];
-#define ADS1115_ADDRESS 0x48
+uint8_t ADS1115_ADDRESS = 0x48;
 unsigned char ADSwrite[6];
+unsigned char ADS1115_ADDRES[4];
 int16_t reading;
 float voltageT[4];
 const float voltageConv = 6.114 / 32768.0;
@@ -49,6 +50,16 @@ typedef enum
   Switch_Off    = 0x00U,
   Switch_On       = 0x01U,
 } SwitchStatus;
+
+typedef enum
+{
+  differentialMode    = 0x00U,
+  singleEndMode       = 0x01U,
+} ads1115QeuryMode;
+
+
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -125,7 +136,8 @@ int main(void)
   MX_USART6_UART_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  delay_init(16);
+  delay_init(168);
+
 
   //TODO: read DIP switch
   SwitchValue[0] = HAL_GPIO_ReadPin(GPIOE, Switch1_Pin);
@@ -150,7 +162,10 @@ int main(void)
 
   HAL_UART_Receive_DMA(&huart6, rxbuffer, 8);
 
-
+  ADS1115_ADDRES[0] = ADS1115_ADDRESS_ADDR_GND;
+  ADS1115_ADDRES[1] = ADS1115_ADDRESS_ADDR_VDD;
+  ADS1115_ADDRES[2] = ADS1115_ADDRESS_ADDR_SDA;
+  ADS1115_ADDRES[3] = ADS1115_ADDRESS_ADDR_SCL;
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -171,11 +186,11 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of ModbusTransTask */
-  osThreadDef(ModbusTransTask, ModbusTransThread, osPriorityNormal, 0, 128);
+  osThreadDef(ModbusTransTask, ModbusTransThread, osPriorityAboveNormal, 0, 128);
   ModbusTransTaskHandle = osThreadCreate(osThread(ModbusTransTask), NULL);
 
   /* definition and creation of ModbusSetTask */
-  osThreadDef(ModbusSetTask, ModbusSetThread, osPriorityNormal, 0, 128);
+  osThreadDef(ModbusSetTask, ModbusSetThread, osPriorityAboveNormal, 0, 128);
   ModbusSetTaskHandle = osThreadCreate(osThread(ModbusSetTask), NULL);
 
   /* definition and creation of ADS1115Task */
@@ -221,7 +236,12 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -230,12 +250,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
     Error_Handler();
   }
@@ -398,7 +418,7 @@ void ModbusTransThread(void const * argument)
       c=0;
       }
 
-    //osDelay(1);
+    osDelay(1);
   }
   /* USER CODE END 5 */ 
 }
@@ -417,12 +437,24 @@ void ModbusSetThread(void const * argument)
   for(;;)
   {
 
-	for(int i=0;i<16;i++)
-	{
-		   ModBus_SetRegister(i,ADCVALUE[i]);
-	}
+		   ModBus_SetRegister(0,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_GND_BOARD.ADS1115_CH1.data));
+		   ModBus_SetRegister(1,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_GND_BOARD.ADS1115_CH2.data));
+		   ModBus_SetRegister(2,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_VDD_BOARD.ADS1115_CH1.data));
+		   ModBus_SetRegister(3,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_VDD_BOARD.ADS1115_CH2.data));
+		   ModBus_SetRegister(4,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_SDA_BOARD.ADS1115_CH1.data));
+		   ModBus_SetRegister(5,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_SDA_BOARD.ADS1115_CH2.data));
+		   ModBus_SetRegister(6,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_SCL_BOARD.ADS1115_CH1.data));
+		   ModBus_SetRegister(7,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_SCL_BOARD.ADS1115_CH2.data));
+//
+//		   ModBus_SetRegister(1,(int)ADS1115_ADDRESS_ADDR_GND_BOARD.ADS1115_CH2.data * 1000);
+//		   ModBus_SetRegister(2,(int)ADS1115_ADDRESS_ADDR_VDD_BOARD.ADS1115_CH1.data * 1000);
+//		   ModBus_SetRegister(3,(int)ADS1115_ADDRESS_ADDR_VDD_BOARD.ADS1115_CH2.data * 1000);
+//		   ModBus_SetRegister(4,(int)ADS1115_ADDRESS_ADDR_SDA_BOARD.ADS1115_CH1.data * 1000);
+//		   ModBus_SetRegister(5,(int)ADS1115_ADDRESS_ADDR_SDA_BOARD.ADS1115_CH2.data * 1000);
+//		   ModBus_SetRegister(6,(int)ADS1115_ADDRESS_ADDR_SCL_BOARD.ADS1115_CH1.data * 1000);
+//		   ModBus_SetRegister(7,(int)ADS1115_ADDRESS_ADDR_SCL_BOARD.ADS1115_CH2.data * 1000);
 
-    //osDelay(1);
+    osDelay(1);
   }
   /* USER CODE END ModbusSetThread */
 }
@@ -440,51 +472,30 @@ void ADS1115Thread(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-		for( int i = 0; i < 2; i++) {
-			ADSwrite[0] = 0x01;
-			if(Ads1115QueryMode == differentialMode)
-			switch(i) {
-				case(0):
-					ADSwrite[1] = 0x81; // 10000001
-				break;
-				case(1):
-					ADSwrite[1] = 0xB1;// 10110001
-				break;
-			}
-			else // single-end mode
-			{
-			case(0):
-				ADSwrite[1] = 0x81; // 10000001
-			break;
-			case(1):
-				ADSwrite[1] = 0xB1;// 10110001
-			break;
-//				case(2):
-//					ADSwrite[1] = 0xE1;
-//				break;
-//				case(3):
-//					ADSwrite[1] = 0xF1;
-//				break;
-			}
-			ADSwrite[2] = 0x83; // 10000011
-			HAL_I2C_Master_Transmit(&hi2c1, ADS1115_ADDRESS<<1, ADSwrite, 3, 100);
-			ADSwrite[0] = 0x00;
-			HAL_I2C_Master_Transmit(&hi2c1, ADS1115_ADDRESS<<1, ADSwrite, 1, 100);
-			HAL_Delay(20);
-			HAL_I2C_Master_Receive(&hi2c1, ADS1115_ADDRESS<<1, ADSwrite, 2, 100);
-			reading = (ADSwrite[0] << 8 | ADSwrite[1]);
-			if(reading >= 0x8000 && reading <= 0xffff)
-			{
-				reading = 0xffff - reading;   //差值为负取绝对值，使得A0 A1正反接都行
-			}
-			 else if(reading >= 0xffff)
-			 {
-				 reading = 0;
-			 }
 
-			voltageT[i] = reading * voltageConv;
-		}
-    delay_ms(1);
+	  uint8_t ADS1115_ADDRESS_ADDR = 0;
+	  for( int j = ADS1115_ADDRESS_ADDR_GND; j <= ADS1115_ADDRESS_ADDR_SCL; j++) {
+		  	  switch(j)
+			  {
+				  case(ADS1115_ADDRESS_ADDR_GND):
+					ADS1115_ADDRESS_ADDR = ADS1115_ADDRESS_ADDR_GND; // 10000001 CH0+ CH1
+					Read_ads1115(&ADS1115_ADDRESS_ADDR_GND_BOARD, ADS1115_ADDRESS_ADDR);
+					break;
+				  case(ADS1115_ADDRESS_ADDR_VDD):
+					ADS1115_ADDRESS_ADDR = ADS1115_ADDRESS_ADDR_VDD; // 10000001 CH1+ CH2
+					Read_ads1115(&ADS1115_ADDRESS_ADDR_VDD_BOARD, ADS1115_ADDRESS_ADDR);
+					break;
+				  case(ADS1115_ADDRESS_ADDR_SDA):
+					ADS1115_ADDRESS_ADDR = ADS1115_ADDRESS_ADDR_SDA; // 10000001 CH3+ CH4
+					Read_ads1115(&ADS1115_ADDRESS_ADDR_SDA_BOARD, ADS1115_ADDRESS_ADDR);
+					break;
+				  case(ADS1115_ADDRESS_ADDR_SCL):
+					ADS1115_ADDRESS_ADDR = ADS1115_ADDRESS_ADDR_SCL; // 10000001 CH5+ CH6
+					Read_ads1115(&ADS1115_ADDRESS_ADDR_SCL_BOARD, ADS1115_ADDRESS_ADDR);
+					break;
+		  }
+	  }
+	  osDelay(1);
   }
   /* USER CODE END ADS1115Thread */
 }
