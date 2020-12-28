@@ -34,7 +34,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-uint8_t rxbuffer[8];
+uint8_t rxbuffer[20];
 uint8_t ADS1115_ADDRESS = 0x48;
 unsigned char ADSwrite[6];
 unsigned char ADS1115_ADDRES[4];
@@ -376,11 +376,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
  /* NOTE: This function should not be modified, when the callback is needed,
           the HAL_UART_RxCpltCallback could be implemented in the user file
   */
- HAL_UART_Receive_DMA(&huart6, rxbuffer, 8);
+
+ 	HAL_UART_Receive_DMA(&huart6, rxbuffer, 20);
 	for(int i=0;i<8;i++)
 	{
-		 osMessagePut(ModBusInHandle,rxbuffer[i],0);
+		 osMessagePut(ModBusInHandle,rxbuffer[i], 100);
 	}
+	memset(rxbuffer,0,strlen(rxbuffer));
 }
 
 /* USER CODE END 4 */
@@ -445,8 +447,8 @@ void ModbusSetThread(void const * argument)
 		   ModBus_SetRegister(5,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_SDA_BOARD.ADS1115_CH2.data));
 		   ModBus_SetRegister(6,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_SCL_BOARD.ADS1115_CH1.data));
 		   ModBus_SetRegister(7,(int)Convert2Modbus(ADS1115_ADDRESS_ADDR_SCL_BOARD.ADS1115_CH2.data));
-//
-//		   ModBus_SetRegister(1,(int)ADS1115_ADDRESS_ADDR_GND_BOARD.ADS1115_CH2.data * 1000);
+
+//		   ModBus_SetRegister(1,1);
 //		   ModBus_SetRegister(2,(int)ADS1115_ADDRESS_ADDR_VDD_BOARD.ADS1115_CH1.data * 1000);
 //		   ModBus_SetRegister(3,(int)ADS1115_ADDRESS_ADDR_VDD_BOARD.ADS1115_CH2.data * 1000);
 //		   ModBus_SetRegister(4,(int)ADS1115_ADDRESS_ADDR_SDA_BOARD.ADS1115_CH1.data * 1000);

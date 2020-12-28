@@ -48,7 +48,7 @@ void Read_ads1115(ADS1115_BOARD * ADS1115_BOARD_SELECT,uint8_t ADDRESS)
 		reading = (ADSwrite[0] << 8 | ADSwrite[1]);
 		if(reading >= 0x8000 && reading <= 0xffff)
 		{
-			reading = 0xffff - reading;   //差�?�为负�?��?�对?��?�使得A0 A1�???�接?���?
+			reading = 0xffff - reading;
 		}
 		 else if(reading >= 0xffff)
 		 {
